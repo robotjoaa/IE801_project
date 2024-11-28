@@ -20,7 +20,7 @@ import jax.numpy as jnp
 from utilities.jax_utils import mse_loss, next_rng, value_and_multi_grad
 
 from algos.mf_algos.iql import IQL
-
+from algos.mf_algos.model import Scalar, update_target_network
 class IQL_Onestep(IQL):
 
   def train(self, batch, update_target_policy):

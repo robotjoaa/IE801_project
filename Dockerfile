@@ -1,5 +1,6 @@
 # FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
-FROM tensorflow/tensorflow:latest-gpu
+# FROM tensorflow/tensorflow:latest-gpu
+FROM tensorflow/tensorflow:2.11.0-gpu
 
 ARG uid
 ARG user
@@ -45,12 +46,12 @@ RUN pip3 install wandb \
     dm-sonnet==2.0.1 \
     dm-reverb==0.10.0 \
 	"jax[cuda11_cudnn82]==0.4.1" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html \
-    flax==0.6.4 \
-    chex==0.1.6 \
     optax==0.1.4 \
+    chex==0.1.6 \
     distrax==0.1.3 \
 	free-mujoco-py==2.1.6 \
 	ml_collections 
+RUN pip3 install flax==0.6.4 orbax==0.1.2
 
 RUN pip3 install git+https://github.com/Farama-Foundation/d4rl@master#egg=d4rl
 
