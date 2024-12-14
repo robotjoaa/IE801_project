@@ -42,5 +42,5 @@ def get_config():
   config.type = 'model-free'
   config.training = get_training_configs()
   config.agent = getattr(algos, config.name).get_default_config()
-
+  
   return config

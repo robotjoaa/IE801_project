@@ -74,6 +74,7 @@ class WandBLogger(object):
     config.experiment_id = config_dict.placeholder(str)
     config.anonymous = 'allow'
     config.notes = config_dict.placeholder(str)
+    config.model_dir = ""
 
     if updates is not None:
       config.update(ConfigDict(updates).copy_and_resolve_references())
@@ -127,6 +128,13 @@ class WandBLogger(object):
   def save_pickle(self, obj, filename):
     with open(os.path.join(self.config.output_dir, filename), "wb") as fout:
       pickle.dump(obj, fout)
+
+  def load_pickle(self, filename):
+    assert filename is not None 
+    #with open(filename, "rb") as fout:
+    import copy
+    obj = pickle.load(open(filename, 'rb'))
+    return copy.deepcopy(obj)
 
   @property
   def experiment_id(self):

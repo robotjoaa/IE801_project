@@ -46,4 +46,8 @@ def get_default_training_cfgs():
   config.num_steps = 5
   config.decrease_beta = False
 
+  config.test_mode = False
+  config.use_opex = False
+  config.save_model = True
+
   return config

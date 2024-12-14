@@ -50,7 +50,10 @@ FLAGS_DEF = define_flags_with_default(
   topn=100, # use top x% transitions sorted by traj return
   opex_beta = 0.1,
   num_steps = 5,
-  decrease_beta = False
+  decrease_beta = False,
+  test_mode = False,
+  use_opex = False,
+  model_dir = ""
 )
 
 config_flags.DEFINE_config_file(

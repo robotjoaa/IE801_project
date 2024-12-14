@@ -77,6 +77,9 @@ class MFTrainer_OPEX(Trainer):
     self.opex_beta = self._cfgs.opex_beta
     self.num_steps = self._cfgs.num_steps
     self.decrease_beta = self._cfgs.decrease_beta
+
+    self.test_mode = self._cfgs.test_mode
+    self.use_opex = self._cfgs.use_opex
     self._setup_env()
 
     self._variant = get_user_flags(self._cfgs, FLAGS_DEF)
@@ -139,6 +142,19 @@ class MFTrainer_OPEX(Trainer):
 
     viskit_metrics = {}
     avg_norm_returns = []
+    metrics = {}
+
+    if self.test_mode : 
+      if self.use_opex : 
+        self._eval_opex(epoch, metrics, avg_norm_returns)
+        metrics["eval_opex_time"] = eval_opex_timer()
+      else : 
+        self._eval(epoch, metrics, avg_norm_returns)
+        metrics["eval_time"] = eval_timer()
+
+      print(metrics)
+      return 
+
     for epoch in range(self._training_cfgs.n_epochs):
       metrics = {"epoch": epoch}
       train_results = {}
@@ -194,7 +210,7 @@ class MFTrainer_OPEX(Trainer):
         if self._cfgs.save_model:
                 save_data = {
                 "agent": self._agent,
-                "cfgs": self._cfgs,
+                #"cfgs": self._cfgs,
                 "epoch": epoch
                 }
                 self._wandb_logger.save_pickle(save_data, f"model_{epoch}.pkl")
@@ -216,7 +232,8 @@ class MFTrainer_OPEX(Trainer):
 
     # save model
     if self._cfgs.save_model:
-      save_data = {"agent": self._agent, "cfgs": self._cfgs, "epoch": epoch}
+      save_data = {"agent": self._agent, #"cfgs": self._cfgs, 
+                   "epoch": epoch}
       self._wandb_logger.save_pickle(save_data, "model_final.pkl")
 
   def _train_onestep(self):
@@ -277,7 +294,8 @@ class MFTrainer_OPEX(Trainer):
 
     # save model
     if self._cfgs.save_model:
-      save_data = {"agent": self._agent, "cfgs": self._cfgs, "epoch": epoch}
+      save_data = {"agent": self._agent, #"cfgs": self._cfgs, 
+                   "epoch": epoch}
       self._wandb_logger.save_pickle(save_data, "model_final.pkl")
 
   def _eval(self, epoch, metrics, avg_norm_returns, policy_name="policy", log_prefix=False):
@@ -319,7 +337,7 @@ class MFTrainer_OPEX(Trainer):
       if self._cfgs.save_model:
             save_data = {
               "agent": self._agent,
-              "cfgs": self._cfgs,
+              #"cfgs": self._cfgs,
               "epoch": epoch
             }
             self._wandb_logger.save_pickle(save_data, f"model_{epoch}.pkl")
@@ -413,7 +431,7 @@ class MFTrainer_OPEX(Trainer):
         if self._cfgs.save_model:
                 save_data = {
                 "agent": self._agent,
-                "cfgs": self._cfgs,
+                #"cfgs": self._cfgs,
                 "epoch": epoch
                 }
 
@@ -452,14 +470,27 @@ class MFTrainer_OPEX(Trainer):
     self._dataset, self._eval_sampler = self._setup_dataset()
 
     # setup policy
-    self._policy = self._setup_policy()
+    print("test mode ", self.test_mode)
+    if not self.test_mode : 
+      self._policy = self._setup_policy()
 
-    # setup Q-function
-    self._qf = self._setup_qf()
+      # setup Q-function
+      self._qf = self._setup_qf()
 
-    # setup vf only for IQL
-    if self._algo_type in [ALGO.IQL, ALGO.IQL_Onestep]:
-      self._vf = self._setup_vf()
+      # setup vf only for IQL
+      if self._algo_type in [ALGO.IQL, ALGO.IQL_Onestep]:
+        self._vf = self._setup_vf()
+    else :
+      # load policy 
+      loaded_agent = self._wandb_logger.load_pickle(self._cfgs.logging.model_dir)
+      self._policy = loaded_agent.policy
+
+      # setup Q-function
+      self._qf = loaded_agent.qf
+
+      # setup vf only for IQL
+      if self._algo_type in [ALGO.IQL, ALGO.IQL_Onestep]:
+        self._vf = loaded_agent.vf
 
     # setup agent
     max_steps = int(self._training_cfgs.n_epochs * self._cfgs.n_train_step_per_epoch)
@@ -477,6 +508,7 @@ class MFTrainer_OPEX(Trainer):
       self._agent = self._algo(
         self._agent_cfgs, self._policy, self._qf, max_steps=max_steps
       )
+
 
     # setup sampler policy
     self._sampler_policy = SamplerPolicy(

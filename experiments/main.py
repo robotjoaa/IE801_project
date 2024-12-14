@@ -21,7 +21,7 @@ from experiments.mf_trainer_opex import MFTrainer_OPEX
 import d4rl
 import argparse
 
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+#os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '3'

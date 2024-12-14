@@ -41,7 +41,8 @@ RUN pip3 install --upgrade pip \
 RUN pip3 install wandb \
     rlds \
     tensorflow==2.11.0 \
-	  tfds-nightly==4.8.3.dev202303130045 \
+	#tfds-nightly==4.8.3.dev202303130045 \
+    tensorflow-datasets==4.9.0 \
     dm-acme==0.2.4 \
     dm-sonnet==2.0.1 \
     dm-reverb==0.10.0 \
