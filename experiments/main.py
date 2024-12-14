@@ -16,17 +16,33 @@ import os
 
 import absl.app
 
-from experiments.mf_trainer import MFTrainer
+# from experiments.mf_trainer import MFTrainer
+from experiments.mf_trainer_opex import MFTrainer_OPEX
 import d4rl
+import argparse
 
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '4'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '7'
+
+
+FLAGS = absl.flags.FLAGS
 
 def main(argv):
   model_type = absl.flags.FLAGS.algo_cfg.type
   if absl.flags.FLAGS.release:
     assert not os.path.isdir("./.git")
 
+
   if model_type == "model-free":
-    mf_trainer = MFTrainer()
+    # mf_trainer = MFTrainer()
+    mf_trainer = MFTrainer_OPEX()
+
     mf_trainer.train()
   else:
     raise NotImplementedError

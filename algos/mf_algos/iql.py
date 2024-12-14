@@ -47,6 +47,9 @@ class IQL(Algo):
     config.awr_temperature = 3.0
     config.loss_type = 'expectile'
     config.use_scheduler = True
+    # config.opex_beta = 0.1
+    # config.num_steps = 5
+    # config.decrease_beta = False
 
     if updates is not None:
       config.update(ConfigDict(updates).copy_and_resolve_references())

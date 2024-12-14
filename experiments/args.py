@@ -48,6 +48,9 @@ FLAGS_DEF = define_flags_with_default(
   release=release,
   # configs for dataset distribution
   topn=100, # use top x% transitions sorted by traj return
+  opex_beta = 0.1,
+  num_steps = 5,
+  decrease_beta = False
 )
 
 config_flags.DEFINE_config_file(
