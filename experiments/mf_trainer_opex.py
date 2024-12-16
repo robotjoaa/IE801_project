@@ -76,8 +76,8 @@ class MFTrainer_OPEX(Trainer):
     self._agent_cfgs = self._cfgs.algo_cfg.agent
     self.opex_beta = self._cfgs.opex_beta
     self.num_steps = self._cfgs.num_steps
-    self.decrease_beta = self._cfgs.decrease_beta
-
+    # self.decrease_beta = self._cfgs.decrease_beta
+    self.norm_grad = self._cfgs.norm_grad
     self.test_mode = self._cfgs.test_mode
     self.use_opex = self._cfgs.use_opex
     self._setup_env()
@@ -107,16 +107,16 @@ class MFTrainer_OPEX(Trainer):
     self._agent: object = None
     self._sampler_policy: SamplerPolicy = None
 
-  def update_opex_beta(self, epoch):
-    """
-    OPEX Beta 값을 업데이트하는 함수.
-    """
-    if self.decrease_beta:
-        epoch = max(0, min(epoch, self._training_cfgs.n_epochs)) 
-        # 선형 감소
-        self.opex_beta = self.opex_beta * (1 - epoch / self._training_cfgs.n_epochs)
-        # 지수 감소 (원하면 주석 해제)
-        # self.opex_beta = self.opex_beta * np.exp(-epoch / self._cfgs.decay_rate)
+  # def update_opex_beta(self, epoch):
+  #   """
+  #   OPEX Beta 값을 업데이트하는 함수.
+  #   """
+  #   if self.decrease_beta:
+  #       epoch = max(0, min(epoch, self._training_cfgs.n_epochs)) 
+  #       # 선형 감소
+  #       self.opex_beta = self.opex_beta * (1 - epoch / self._training_cfgs.n_epochs)
+  #       # 지수 감소 (원하면 주석 해제)
+  #       # self.opex_beta = self.opex_beta * np.exp(-epoch / self._cfgs.decay_rate)
 
   def flags_to_dict(flags):
     return {flag.name: flag.value for flag in flags.flags_by_module_dict().values()}
@@ -130,7 +130,7 @@ class MFTrainer_OPEX(Trainer):
         break
     else:
       raise NotImplementedError
-
+  
   def train(self):
     if self._algo_type in [ALGO.Onestep, ALGO.IQL_Onestep]:
       self._train_onestep()
@@ -207,27 +207,28 @@ class MFTrainer_OPEX(Trainer):
 
         metrics.update(train_results)
 
-        if self._cfgs.save_model:
-                save_data = {
-                "agent": self._agent,
-                #"cfgs": self._cfgs,
-                "epoch": epoch
-                }
-                self._wandb_logger.save_pickle(save_data, f"model_{epoch}.pkl")
+        if epoch % 500 == 0:
+          if self._cfgs.save_model:
+                  save_data = {
+                  "agent": self._agent,
+                  #"cfgs": self._cfgs,
+                  "epoch": epoch
+                  }
+                  self._wandb_logger.save_pickle(save_data, f"model_{epoch}.pkl")
 
-      with Timer() as eval_timer:
-        if epoch == 0 or (epoch + 1) % self._cfgs.eval_period == 0:
-          self._eval(epoch, metrics, avg_norm_returns)
+      # with Timer() as eval_timer:
+      #   if epoch == 0 or (epoch + 1) % self._cfgs.eval_period == 0:
+      #     self._eval(epoch, metrics, avg_norm_returns)
 
       with Timer() as eval_opex_timer:
         if epoch == 0 or (epoch + 1) % self._cfgs.eval_period == 0:
           self._eval_opex(epoch, metrics, avg_norm_returns)
 
       metrics["train_time"] = train_timer()
-      metrics["eval_time"] = eval_timer()
+      #metrics["eval_time"] = eval_timer()
       metrics["eval_opex_time"] = eval_opex_timer()
-      metrics["epoch_time"] = train_timer() + eval_timer() + eval_opex_timer()
-
+      #metrics["epoch_time"] = train_timer() + eval_timer() + eval_opex_timer()
+      metrics["epoch_time"] = train_timer() + eval_opex_timer()
       self._log(viskit_metrics, metrics)
 
     # save model
@@ -334,13 +335,14 @@ class MFTrainer_OPEX(Trainer):
       else:
         metrics.update(eval_results)
 
-      if self._cfgs.save_model:
-            save_data = {
-              "agent": self._agent,
-              #"cfgs": self._cfgs,
-              "epoch": epoch
-            }
-            self._wandb_logger.save_pickle(save_data, f"model_{epoch}.pkl")
+      if epoch % 200 == 0:
+        if self._cfgs.save_model:
+              save_data = {
+                "agent": self._agent,
+                #"cfgs": self._cfgs,
+                "epoch": epoch
+              }
+              self._wandb_logger.save_pickle(save_data, f"model_eval_{epoch}.pkl")
 
   @partial(jax.jit, static_argnames=('self', 'num_steps'))
   def opex_action(self, params, observations, action, num_steps):
@@ -354,11 +356,19 @@ class MFTrainer_OPEX(Trainer):
           return q_value.mean()  # Ensure the output is a scalar
 
       optimized_action = action  # Initialize with the original action
+      q_value_abs = jnp.abs(self._agent.qf.apply(params['qf1'], observations, action))
 
       # Perform gradient ascent for the specified number of steps
       for _ in range(num_steps):
           grad_q = jax.grad(q_func)(optimized_action)
-          optimized_action = optimized_action + self.opex_beta * grad_q
+          ## divide by q
+          if not self.norm_grad : 
+            optimized_action = optimized_action + self.opex_beta * grad_q / q_value_abs
+          ## divide by \nabla q 
+          else : 
+            optimized_action = optimized_action + self.opex_beta * grad_q / jnp.abs(grad_q)
+
+          optimized_action = jnp.clip(optimized_action, -1.0, 1.0)
 
       return optimized_action, action
 
@@ -366,7 +376,7 @@ class MFTrainer_OPEX(Trainer):
         """
         Evaluation with OPEX optimization applied, using observations.
         """
-        self.update_opex_beta(epoch)
+        # self.update_opex_beta(epoch)
         
         original_actions = []
 
@@ -398,8 +408,8 @@ class MFTrainer_OPEX(Trainer):
         eval_opex_results = {}
         optimized_actions = np.array([t["actions"] for t in trajs]).reshape(-1)
 
-        eval_opex_results["action_gap"] = np.mean([np.linalg.norm(a_1 - a_2) for a_1, a_2 in \
-                                                   zip(optimized_actions, original_actions)])
+        eval_opex_results["action_gap"] = np.mean([np.mean(np.linalg.norm(a_1 - a_2, axis = 1) for a_1, a_2 in \
+                                                   zip(optimized_actions, original_actions))])
         
         eval_opex_results["opex_beta"] = self.opex_beta
 
@@ -428,14 +438,15 @@ class MFTrainer_OPEX(Trainer):
         else:
             metrics.update(eval_opex_results)
 
-        if self._cfgs.save_model:
-                save_data = {
-                "agent": self._agent,
-                #"cfgs": self._cfgs,
-                "epoch": epoch
-                }
+        if epoch % 200 == 0:
+          if self._cfgs.save_model:
+                  save_data = {
+                  "agent": self._agent,
+                  #"cfgs": self._cfgs,
+                  "epoch": epoch
+                  }
 
-                self._wandb_logger.save_pickle(save_data, f"model_{epoch}.pkl")
+                  self._wandb_logger.save_pickle(save_data, f"model_eval_opex_{epoch}.pkl")
 
     
   # def _log(self, viskit_metrics, metrics):
@@ -524,9 +535,10 @@ class MFTrainer_OPEX(Trainer):
     if self._cfgs.release:
       logging_configs["project"] = f"{env_name_high}-{dataset_name_abbr}"
     else:
-      logging_configs[
-        "project"
-      ] = f"{self._cfgs.algo_cfg.name}-{env_name_high}-{dataset_name_abbr}"
+      # logging_configs[
+      #   "project"
+      # ] = f"{self._cfgs.algo_cfg.name}-{env_name_high}-{dataset_name_abbr}"
+      logging_configs["project"] = f""
 
     if self._training_cfgs.note != '':
       logging_configs["project"] += f"-{self._training_cfgs.note}"

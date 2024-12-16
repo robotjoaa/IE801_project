@@ -42,12 +42,13 @@ def get_default_training_cfgs():
   config.last_layer_init = 0.01
   config.note = ''
 
-  config.opex_beta = 0.1
-  config.num_steps = 5
-  config.decrease_beta = False
+  config.opex_beta = 0.5
+  config.num_steps = 1
+  # config.decrease_beta = False
+  config.norm_grad = True
 
   config.test_mode = False
-  config.use_opex = False
+  config.use_opex = True
   config.save_model = True
 
   return config

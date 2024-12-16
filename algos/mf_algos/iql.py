@@ -43,14 +43,14 @@ class IQL(Algo):
     config.optimizer_type = 'adam'
     config.soft_target_update_rate = 5e-3
     config.bc_mode = 'mse'  # 'mle'
-    config.expectile = 0.7
-    config.awr_temperature = 3.0
+    config.expectile = 0.9
+    config.awr_temperature = 10.0
     config.loss_type = 'expectile'
     config.use_scheduler = True
     # config.opex_beta = 0.1
     # config.num_steps = 5
     # config.decrease_beta = False
-
+    
     if updates is not None:
       config.update(ConfigDict(updates).copy_and_resolve_references())
     return config

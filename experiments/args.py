@@ -48,11 +48,12 @@ FLAGS_DEF = define_flags_with_default(
   release=release,
   # configs for dataset distribution
   topn=100, # use top x% transitions sorted by traj return
-  opex_beta = 0.1,
-  num_steps = 5,
-  decrease_beta = False,
+  opex_beta = 0.5,
+  num_steps = 1,
+  # decrease_beta = False,
+  norm_grad = True,
   test_mode = False,
-  use_opex = False,
+  use_opex = True,
   model_dir = ""
 )
 
