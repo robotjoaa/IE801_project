@@ -408,9 +408,14 @@ class MFTrainer_OPEX(Trainer):
         eval_opex_results = {}
         optimized_actions = np.array([t["actions"] for t in trajs]).reshape(-1)
 
-        eval_opex_results["action_gap"] = np.mean([np.mean(np.linalg.norm(a_1 - a_2, axis = 1) for a_1, a_2 in \
-                                                   zip(optimized_actions, original_actions))])
+        # eval_opex_results["action_gap"] = np.mean([np.mean(np.linalg.norm(a_1 - a_2, axis = 1) for a_1, a_2 in \
+        #                                            zip(optimized_actions, original_actions))])
         
+        eval_opex_results["action_gap"] = np.mean([
+            np.mean(np.linalg.norm(a_1 - a_2, axis=1)) 
+            for a_1, a_2 in zip(optimized_actions, original_actions)
+        ])
+
         eval_opex_results["opex_beta"] = self.opex_beta
 
         eval_opex_results["opex_average_return"] = np.mean(
@@ -538,7 +543,7 @@ class MFTrainer_OPEX(Trainer):
       # logging_configs[
       #   "project"
       # ] = f"{self._cfgs.algo_cfg.name}-{env_name_high}-{dataset_name_abbr}"
-      logging_configs["project"] = f""
+      logging_configs["project"] = f"{self._cfgs.algo_cfg.name}-{env_name_full}-{self._cfgs.num_steps}-{self._cfgs.opex_beta}-norm-grad-{self._cfgs.norm_grad}"
 
     if self._training_cfgs.note != '':
       logging_configs["project"] += f"-{self._training_cfgs.note}"
