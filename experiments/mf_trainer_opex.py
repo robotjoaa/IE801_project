@@ -216,19 +216,19 @@ class MFTrainer_OPEX(Trainer):
                   }
                   self._wandb_logger.save_pickle(save_data, f"model_{epoch}.pkl")
 
-      # with Timer() as eval_timer:
-      #   if epoch == 0 or (epoch + 1) % self._cfgs.eval_period == 0:
-      #     self._eval(epoch, metrics, avg_norm_returns)
+      with Timer() as eval_timer:
+        if epoch == 0 or (epoch + 1) % self._cfgs.eval_period == 0:
+          self._eval(epoch, metrics, avg_norm_returns)
 
       with Timer() as eval_opex_timer:
         if epoch == 0 or (epoch + 1) % self._cfgs.eval_period == 0:
           self._eval_opex(epoch, metrics, avg_norm_returns)
 
       metrics["train_time"] = train_timer()
-      #metrics["eval_time"] = eval_timer()
+      metrics["eval_time"] = eval_timer()
       metrics["eval_opex_time"] = eval_opex_timer()
-      #metrics["epoch_time"] = train_timer() + eval_timer() + eval_opex_timer()
-      metrics["epoch_time"] = train_timer() + eval_opex_timer()
+      metrics["epoch_time"] = train_timer() + eval_timer() + eval_opex_timer()
+      # metrics["epoch_time"] = train_timer() + eval_opex_timer()
       self._log(viskit_metrics, metrics)
 
     # save model
@@ -361,12 +361,20 @@ class MFTrainer_OPEX(Trainer):
       # Perform gradient ascent for the specified number of steps
       for _ in range(num_steps):
           grad_q = jax.grad(q_func)(optimized_action)
-          ## divide by q
-          if not self.norm_grad : 
-            optimized_action = optimized_action + self.opex_beta * grad_q / q_value_abs
-          ## divide by \nabla q 
-          else : 
-            optimized_action = optimized_action + self.opex_beta * grad_q / jnp.abs(grad_q)
+          if jnp.abs(grad_q) <= 1e-4:
+            ## divide by q
+            if not self.norm_grad : 
+              optimized_action = optimized_action + self.opex_beta * grad_q
+            ## divide by \nabla q 
+            else : 
+              optimized_action = optimized_action + self.opex_beta * grad_q
+          else:
+            ## divide by q
+            if not self.norm_grad : 
+              optimized_action = optimized_action + self.opex_beta * grad_q / q_value_abs
+            ## divide by \nabla q 
+            else : 
+              optimized_action = optimized_action + self.opex_beta * grad_q / jnp.abs(grad_q)
 
           optimized_action = jnp.clip(optimized_action, -1.0, 1.0)
 
@@ -410,7 +418,7 @@ class MFTrainer_OPEX(Trainer):
 
         # eval_opex_results["action_gap"] = np.mean([np.mean(np.linalg.norm(a_1 - a_2, axis = 1) for a_1, a_2 in \
         #                                            zip(optimized_actions, original_actions))])
-        
+
         eval_opex_results["action_gap"] = np.mean([
             np.mean(np.linalg.norm(a_1 - a_2, axis=1)) 
             for a_1, a_2 in zip(optimized_actions, original_actions)
