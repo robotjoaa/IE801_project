@@ -42,7 +42,7 @@ def get_default_training_cfgs():
   config.last_layer_init = 0.01
   config.note = ''
 
-  config.opex_beta = 0.5
+  config.opex_beta = 0.005
   config.num_steps = 1
   # config.decrease_beta = False
   config.norm_grad = True

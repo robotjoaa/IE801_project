@@ -361,21 +361,15 @@ class MFTrainer_OPEX(Trainer):
       # Perform gradient ascent for the specified number of steps
       for _ in range(num_steps):
           grad_q = jax.grad(q_func)(optimized_action)
-          if jnp.abs(grad_q) <= 1e-4:
-            ## divide by q
-            if not self.norm_grad : 
-              optimized_action = optimized_action + self.opex_beta * grad_q
-            ## divide by \nabla q 
-            else : 
-              optimized_action = optimized_action + self.opex_beta * grad_q
-          else:
-            ## divide by q
-            if not self.norm_grad : 
-              optimized_action = optimized_action + self.opex_beta * grad_q / q_value_abs
-            ## divide by \nabla q 
-            else : 
-              optimized_action = optimized_action + self.opex_beta * grad_q / jnp.abs(grad_q)
-
+          ## divide by q
+          if not self.norm_grad : 
+            grad_q = jnp.where(jnp.abs(grad_q) <= 1e-4, grad_q, grad_q / q_value_abs)
+            optimized_action = optimized_action + self.opex_beta * grad_q
+          ## divide by \nabla q 
+          else : 
+            grad_q = jnp.where(jnp.abs(grad_q) <= 1e-4, grad_q, grad_q / jnp.abs(grad_q))
+            optimized_action = optimized_action + self.opex_beta * grad_q
+            
           optimized_action = jnp.clip(optimized_action, -1.0, 1.0)
 
       return optimized_action, action
