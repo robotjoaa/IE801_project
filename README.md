@@ -13,6 +13,7 @@ We provide a holistic benchmark for offline reinforcement learning across both t
 
 
 ### Results on D4RL dataset
+![image](https://github.com/user-attachments/assets/977c7380-47ad-4397-8821-83c051fcda2c)
 <img width="1144" alt="image" src="https://user-images.githubusercontent.com/17567744/224491030-ae50f00d-fc3c-4cef-aac3-94789f5057c1.png">
 
 ## Setup the Environment
