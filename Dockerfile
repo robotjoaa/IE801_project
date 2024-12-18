@@ -33,7 +33,7 @@ RUN mkdir -p ~/.mujoco \
     && wget https://mujoco.org/download/mujoco210-linux-x86_64.tar.gz -O mujoco.tar.gz \
     && tar -xf mujoco.tar.gz -C ~/.mujoco \
     && rm mujoco.tar.gz
-ENV LD_LIBRARY_PATH /root/.mujoco/mujoco210/bin:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/root/.mujoco/mujoco210/bin:${LD_LIBRARY_PATH}
 
 
 RUN pip3 install --upgrade pip \
@@ -41,7 +41,7 @@ RUN pip3 install --upgrade pip \
 RUN pip3 install wandb \
     rlds \
     tensorflow==2.11.0 \
-	  tfds-nightly==4.8.3.dev202303130045 \
+	  tensorflow-datasets==4.9.0 \
     dm-acme==0.2.4 \
     dm-sonnet==2.0.1 \
     dm-reverb==0.10.0 \
@@ -65,6 +65,6 @@ RUN sed "71d" setup.py > tmp.py \
     && mv tmp.py setup.py \
     && pip3 install .
 
-ENV PYTHONPATH /offbench:${PYTHONPATH}
+ENV PYTHONPATH=/offbench:${PYTHONPATH}
 
 WORKDIR /offbench
