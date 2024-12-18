@@ -1,0 +1,189 @@
+{
+  "_wandb": {
+    "value": {
+      "cli_version": "0.19.1",
+      "m": [],
+      "python_version": "3.8.10",
+      "t": {
+        "1": [
+          2,
+          3,
+          12,
+          45,
+          55
+        ],
+        "2": [
+          2,
+          3,
+          12,
+          45,
+          55
+        ],
+        "3": [
+          14,
+          16,
+          23,
+          55
+        ],
+        "4": "3.8.10",
+        "5": "0.19.1",
+        "8": [
+          8
+        ],
+        "12": "0.19.1",
+        "13": "linux-x86_64"
+      }
+    }
+  },
+  "algo_cfg": {
+    "value": {
+      "agent": {
+        "alpha_multiplier": 1,
+        "awr_temperature": 10,
+        "backup_entropy": false,
+        "bc_mode": "mse",
+        "discount": 0.99,
+        "expectile": 0.9,
+        "loss_type": "expectile",
+        "nstep": 1,
+        "optimizer_type": "adam",
+        "policy_lr": 0.0003,
+        "qf_lr": 0.0003,
+        "soft_target_update_rate": 0.005,
+        "target_entropy": 0,
+        "use_automatic_entropy_tuning": true,
+        "use_scheduler": true,
+        "vf_lr": 0.0003
+      },
+      "name": "IQL",
+      "training": {
+        "activation": "relu",
+        "batch_size": 256,
+        "clip_mean": false,
+        "dropout": null,
+        "hidden_dim": 256,
+        "last_layer_init": 1.4142135623730951,
+        "n_epochs": 1200,
+        "norm_grad": true,
+        "norm_reward": true,
+        "note": "",
+        "num_blocks": 4,
+        "num_steps": 3,
+        "obs_norm": false,
+        "opex_beta": 0.03,
+        "orthogonal_init": true,
+        "policy_arch": "256-256",
+        "policy_layer_norm": false,
+        "qf_arch": "256-256",
+        "qf_layer_norm": false,
+        "res_type": "crr",
+        "rew_clip": false,
+        "save_model": true,
+        "state_dependent_std": false,
+        "tanh_squash_distribution": false,
+        "target_policy_update_interval": 1,
+        "target_policy_warmup": 0,
+        "test_mode": false,
+        "use_opex": true,
+        "use_resnet": false
+      },
+      "type": "model-free"
+    }
+  },
+  "clip_action": {
+    "value": 0.999
+  },
+  "dataset": {
+    "value": "d4rl"
+  },
+  "env": {
+    "value": "antmaze-medium-diverse-v2"
+  },
+  "eval_n_trajs": {
+    "value": 100
+  },
+  "eval_period": {
+    "value": 10
+  },
+  "hostname": {
+    "value": "itl-Sim9"
+  },
+  "logging.anonymous": {
+    "value": "allow"
+  },
+  "logging.experiment_id": {
+    "value": null
+  },
+  "logging.model_dir": {
+    "value": ""
+  },
+  "logging.notes": {
+    "value": null
+  },
+  "logging.online": {
+    "value": true
+  },
+  "logging.output_dir": {
+    "value": "./experiment_output"
+  },
+  "logging.prefix": {
+    "value": ""
+  },
+  "logging.project": {
+    "value": "OfflineRL"
+  },
+  "logging.random_delay": {
+    "value": 0
+  },
+  "max_traj_length": {
+    "value": 1000
+  },
+  "model_dir": {
+    "value": ""
+  },
+  "n_train_step_per_epoch": {
+    "value": 1000
+  },
+  "norm_grad": {
+    "value": true
+  },
+  "num_steps": {
+    "value": 3
+  },
+  "opex_beta": {
+    "value": 0.03
+  },
+  "policy_log_std_multiplier": {
+    "value": 1
+  },
+  "policy_log_std_offset": {
+    "value": -1
+  },
+  "release": {
+    "value": false
+  },
+  "reward_bias": {
+    "value": 0
+  },
+  "reward_scale": {
+    "value": 1
+  },
+  "rl_unplugged_task_class": {
+    "value": "control_suite"
+  },
+  "save_model": {
+    "value": true
+  },
+  "seed": {
+    "value": 42
+  },
+  "test_mode": {
+    "value": false
+  },
+  "topn": {
+    "value": 100
+  },
+  "use_opex": {
+    "value": true
+  }
+}

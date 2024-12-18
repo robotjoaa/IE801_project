@@ -13,6 +13,14 @@ ALPHA = 0.2
 THRESHOLD_FOR_NUM_ALGS_UNTIL_LEGEND_BELOW_PLOT = 6
 THRESHOLD_FOR_ALG_NAME_LENGTH_UNTIL_LEGEND_BELOW_PLOT = 20
 
+BETA_COLORS = {
+    0.5: "tab:blue",
+    0.3: "tab:blue",
+    0.05: "tab:orange",
+    0.03: "tab:orange",
+    0.005: "tab:green",
+    0.003: "tab:green",
+}
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -25,7 +33,7 @@ def parse_args():
     parser.add_argument(
         "--metric",
         type=str,
-        default="test_return_mean",
+        default="opex_average_return",
         help="Metric to plot",
     )
     parser.add_argument(
@@ -91,16 +99,14 @@ def extract_env_name_from_config(config):
         env_name = None
     return f"{env_name}"
 
-
 def load_results(path, metric):
     path = Path(path)
-    # metrics_files = path.glob("**/metrics.json")
-    metrics_files = path.glob("metrics.json")
+    metrics_files = path.glob("**/metrics.json")  # 모든 하위 폴더의 metrics.json 검색
 
-    # map (env_args, env_name, opex_beta, reward_scalarisation) -> alg_name -> config-str -> (config, steps, values)
+    # 데이터를 조건별로 정리
     data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     for file in metrics_files:
-        # load json
+        # JSON 파일 읽기
         with open(file, "r") as f:
             try:
                 metrics = json.load(f)
@@ -108,7 +114,7 @@ def load_results(path, metric):
                 warnings.warn(f"Could not load metrics from {file} --> skipping")
                 continue
 
-        # find corresponding config file
+        # config.json 파일 확인
         config_file = file.parent / "config.json"
         if not config_file.exists():
             warnings.warn(f"No config file found for {file} --> skipping")
@@ -117,34 +123,54 @@ def load_results(path, metric):
             with open(config_file, "r") as f:
                 config = json.load(f)
 
+        # metric 존재 여부 확인
         if metric in metrics:
             steps = metrics[metric]["steps"]
             values = metrics[metric]["values"]
-        elif "return" in metric and not config["opex_beta"]:
-            warnings.warn(
-                f"Metric {metric} not found in {file}. To plot returns for runs with individual rewards (opex_beta=False), you can plot 'total_return' metrics or returns of individual agents --> skipping"
-            )
-            continue
         else:
             warnings.warn(f"Metric {metric} not found in {file} --> skipping")
             continue
-        del config["seed"]
 
-        alg_name = extract_alg_name_from_config(config)
-        env_name = extract_env_name_from_config(config)
-        # env_args = config["env_args"]
+        # 데이터 정리
+        alg_name = config.get("algo_cfg", {}).get("value", {}).get("name", "unknown")
+        env_name = config.get("env", {}).get("value", "unknown")
+        beta = config.get("algo_cfg", {}).get("value", {}).get("training", {}).get("opex_beta", "unknown")
         num_steps = config["algo_cfg"]["value"]["training"]["num_steps"]
-        opex_beta = config["algo_cfg"]["value"]["training"]["opex_beta"]
-        # reward_scalarisation = config["reward_scalarisation"]
 
-        data[str(env_name), num_steps, opex_beta][alg_name][
-            str(config)
-        ].append((config, steps, values))
-        # data[(env_name)][alg_name][
-        #     str(config)
-        # ].append((config, steps, values))
+        data[(env_name, beta, num_steps)][alg_name][str(config)].append((config, steps, values))
     return data
 
+def plot_results(data, metric, save_dir, y_min, y_max, log_scale):
+    if save_dir is not None:
+        save_dir.mkdir(parents=True, exist_ok=True)
+    sns.set_style("whitegrid")
+
+    plt.figure(figsize=(10, 6))  # 그래프 크기 설정
+
+    for (env_name, beta, num_steps), env_data in data.items():
+        for alg_name, alg_data in env_data.items():
+            for config_key, (config, steps, means, stds) in alg_data.items():
+                # 라벨 및 색상 설정
+                color = BETA_COLORS.get(beta, "gray")
+                label = f"β={beta}"
+                plt.plot(steps, means, label=label, color=color)
+                plt.fill_between(steps, means - stds, means + stds, alpha=ALPHA, color=color)
+
+    # 그래프 설정
+    plt.title(f"{env_name} | {metric} | Num Steps: {num_steps}", fontsize=14)
+    plt.xlabel("Timesteps [1e3]", fontsize=12)
+    plt.ylabel(metric, fontsize=12)
+    if log_scale:
+        plt.yscale("log")
+    if y_min is not None or y_max is not None:
+        plt.ylim(y_min, y_max)
+
+    plt.legend(loc="upper left", bbox_to_anchor=(1.05, 1), fontsize=10)
+    plt.tight_layout()  # 그래프를 잘 맞추기 위해 사용
+
+    # 모든 결과를 하나의 PDF로 저장
+    if save_dir is not None:
+        plt.savefig(save_dir / f"{env_name}-num_step-{num_steps}-{metric}.pdf", bbox_inches="tight")
 
 def filter_results(data, filter_by_algs, filter_by_envs):
     """
@@ -359,52 +385,52 @@ def _filter_best_per_alg(data):
 #         if save_dir is not None:
 #             plt.savefig(save_dir / f"{env}_{metric}.pdf", bbox_inches="tight")
 
-def plot_results(data, metric, save_dir, y_min, y_max, log_scale):
-    if save_dir is not None:
-        save_dir.mkdir(parents=True, exist_ok=True)
-    sns.set_style("whitegrid")
+# # def plot_results(data, metric, save_dir, y_min, y_max, log_scale):
+# #     if save_dir is not None:
+# #         save_dir.mkdir(parents=True, exist_ok=True)
+# #     sns.set_style("whitegrid")
 
-    for (env, step, beta), env_data in data.items():
-        plt.figure()
-        num_plots = 0
-        max_label_len = 0
+# #     for (env, step, beta), env_data in data.items():
+# #         plt.figure()
+# #         num_plots = 0
+# #         max_label_len = 0
 
-        # Group data by beta values for separate plots
-        beta_groups = defaultdict(list)
-        for alg_name, alg_data in env_data.items():
-            for config_key, (config, steps, means, stds) in alg_data.items():
-                beta_value = config["algo_cfg"]["value"]["training"]["opex_beta"]
-                beta_groups[beta_value].append((alg_name, steps, means, stds))
+# #         # Group data by beta values for separate plots
+# #         beta_groups = defaultdict(list)
+# #         for alg_name, alg_data in env_data.items():
+# #             for config_key, (config, steps, means, stds) in alg_data.items():
+# #                 beta_value = config["algo_cfg"]["value"]["training"]["opex_beta"]
+# #                 beta_groups[beta_value].append((alg_name, steps, means, stds))
 
-        for beta_value, beta_data in sorted(beta_groups.items()):  # Sort by beta
-            for alg_name, steps, means, stds in beta_data:
-                label = f"{alg_name} (beta={beta_value})"
-                plt.plot(steps, means, label=label)
-                plt.fill_between(steps, means - stds, means + stds, alpha=ALPHA)
-                num_plots += 1
-                max_label_len = max(max_label_len, len(label))
+# #         for beta_value, beta_data in sorted(beta_groups.items()):  # Sort by beta
+# #             for alg_name, steps, means, stds in beta_data:
+# #                 label = f"{alg_name} (beta={beta_value})"
+# #                 plt.plot(steps, means, label=label)
+# #                 plt.fill_between(steps, means - stds, means + stds, alpha=ALPHA)
+# #                 num_plots += 1
+# #                 max_label_len = max(max_label_len, len(label))
 
-        title = f"{env}"
-        title += f" (num_step ; {step})"
-        plt.title(title)
-        plt.xlabel("Timesteps [1e3]")
-        plt.ylabel(metric)
+# #         title = f"{env}"
+# #         title += f" (num_step ; {step})"
+# #         plt.title(title)
+# #         plt.xlabel("Timesteps [1e3]")
+# #         plt.ylabel(metric)
 
-        if (
-            num_plots > THRESHOLD_FOR_NUM_ALGS_UNTIL_LEGEND_BELOW_PLOT
-            or max_label_len > THRESHOLD_FOR_ALG_NAME_LENGTH_UNTIL_LEGEND_BELOW_PLOT
-        ):
-            # place legend below plot if there are many algos
-            plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3)
-        else:
-            plt.legend()
+# #         if (
+# #             num_plots > THRESHOLD_FOR_NUM_ALGS_UNTIL_LEGEND_BELOW_PLOT
+# #             or max_label_len > THRESHOLD_FOR_ALG_NAME_LENGTH_UNTIL_LEGEND_BELOW_PLOT
+# #         ):
+# #             # place legend below plot if there are many algos
+# #             plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3)
+# #         else:
+# #             plt.legend()
 
-        if log_scale:
-            plt.yscale("log")
-        if y_min is not None or y_max is not None:
-            plt.ylim(y_min, y_max)
-        if save_dir is not None:
-            plt.savefig(save_dir / f"{env}_{metric}_beta_{beta_value}.pdf", bbox_inches="tight")
+# #         if log_scale:
+# #             plt.yscale("log")
+# #         if y_min is not None or y_max is not None:
+# #             plt.ylim(y_min, y_max)
+# #         if save_dir is not None:
+# #             plt.savefig(save_dir / f"{env}_{metric}_beta_{beta_value}.pdf", bbox_inches="tight")
             
 def main():
     args = parse_args()
