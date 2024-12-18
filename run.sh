@@ -1,7 +1,7 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=0
 
-export XLA_PYTHON_CLIENT_MEM_FRACTION=.90
+export XLA_PYTHON_CLIENT_MEM_FRACTION=.40
 
 python -m experiments.main \
   --env "antmaze-large-diverse-v2" \
