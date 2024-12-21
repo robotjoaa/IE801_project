@@ -9,4 +9,3 @@ python -m experiments.main \
   --algo_cfg="./configs/iql_cfgs.py" \
   --save_model True \
   --logging.online 
-  #   --logging.model_dir="./experiment_output/93692b6c24324cd8bf27261a51b9e966/model_0.pkl" \
